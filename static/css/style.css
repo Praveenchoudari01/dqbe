@@ -1,21 +1,29 @@
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f9f9f9;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f8;
     padding: 20px;
+    color: #333;
 }
 
 .container {
     max-width: 1000px;
     margin: 0 auto;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.3s ease;
+}
+
+.container:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
 }
 
 h1 {
     text-align: center;
     margin-bottom: 30px;
+    font-size: 28px;
+    color: #222;
 }
 
 .fields-section ul {
@@ -24,56 +32,90 @@ h1 {
 }
 
 .query-form fieldset {
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    padding: 15px;
-    border-radius: 5px;
+    margin-bottom: 25px;
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #fafafa;
 }
 
 .query-form legend {
-    font-weight: bold;
+    font-weight: 600;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    color: #444;
 }
 
 .query-form label {
-    display: inline-block;
-    margin-bottom: 5px;
+    display: block;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.query-form select,
+.query-form input[type="date"],
+.query-form input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #fff;
+    transition: border-color 0.2s ease;
+}
+
+.query-form select:focus,
+.query-form input[type="date"]:focus {
+    border-color: #007bff;
+    outline: none;
 }
 
 .query-form .submit-btn {
     background-color: #007bff;
     color: white;
-    padding: 12px 20px;
+    padding: 14px 24px;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 500;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .query-form .submit-btn:hover {
     background-color: #0056b3;
+    box-shadow: 0 4px 12px rgba(0, 91, 187, 0.3);
 }
 
 .results-section table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
+    margin-top: 20px;
 }
 
 .results-section th,
 .results-section td {
-    border: 1px solid #ccc;
-    padding: 8px 10px;
+    border: 1px solid #ddd;
+    padding: 12px 14px;
     text-align: center;
+    font-size: 0.95em;
 }
 
 .results-section th {
-    background-color: #f2f2f2;
+    background-color: #e9ecef;
+    color: #333;
+    font-weight: 600;
+}
+
+.results-section tr:nth-child(even) {
+    background-color: #f9fafb;
 }
 
 .chart-section {
-    margin-top: 30px;
+    margin-top: 40px;
 }
 
 .date-range {
     font-size: 0.9em;
-    color: #555;
+    color: #666;
 }
