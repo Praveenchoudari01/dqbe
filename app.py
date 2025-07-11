@@ -35,11 +35,14 @@ def index():
         columns = [sales.c[field] for field in selected_fields if field != 'amount']
 
         if aggregate and 'amount' in selected_fields:
-            agg_column = {
-                'sum': func.sum(sales.c.amount).label('total_amount'),
-                'avg': func.avg(sales.c.amount).label('average_amount'),
-                'count': func.count(sales.c.amount).label('count_amount')
-            }.get(aggregate, sales.c.amount)
+            if aggregate == 'sum':
+                agg_column = func.sum(sales.c.amount).label('total_amount')
+            elif aggregate == 'avg':
+                agg_column = func.avg(sales.c.amount).label('average_amount')
+            elif aggregate == 'count':
+                agg_column = func.count(sales.c.amount).label('count_amount')
+            else:
+                agg_column = sales.c.amount
             columns.append(agg_column)
         elif 'amount' in selected_fields:
             columns.append(sales.c.amount)
@@ -62,15 +65,14 @@ def index():
                 query = query.group_by(*group_columns)
 
         if sort_field:
-            sort_col = sales.c.get(sort_field)
+            sort_col = getattr(sales.c, sort_field, None)
             if sort_col is not None:
                 query = query.order_by(asc(sort_col) if sort_order == 'asc' else desc(sort_col))
 
         with engine.connect() as conn:
             result = conn.execute(query)
-            report_data = result.mappings().all()
+            report_data = result.mappings().all()  # Ensure mappings()
 
-        # Fix JSON serialization issue (Safe & Dynamic)
         if report_data:
             first_key = list(report_data[0].keys())[0]
             last_key = list(report_data[0].keys())[-1]
