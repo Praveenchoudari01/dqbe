@@ -71,15 +71,21 @@ def index():
 
         with engine.connect() as conn:
             result = conn.execute(query)
-            report_data = result.mappings().all()  # Ensure mappings()
+            report_data = result.mappings().all()  # Ensure mappings() for dict-like rows
 
         if report_data:
             first_key = list(report_data[0].keys())[0]
             last_key = list(report_data[0].keys())[-1]
             chart_data['labels'] = [str(row[first_key]) for row in report_data]
-            chart_data['values'] = [float(row[last_key]) for row in report_data]
+            chart_data['values'] = [
+                float(row[last_key]) if row[last_key] is not None else 0.0
+                for row in report_data
+            ]
             chart_data['label'] = str(last_key)
             chart_data['graph_type'] = selected_graph
+
+            # Debugging Print (optional, remove in production)
+            print("chart_data:", chart_data)
 
     return render_template(
         "index.html",

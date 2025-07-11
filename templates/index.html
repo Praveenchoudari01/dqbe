@@ -89,32 +89,13 @@
     {% if chart_data %}
         <h2>Visualization: {{ chart_data.graph_type }}</h2>
         <canvas id="reportChart" width="400" height="200"></canvas>
-        <script>
-            const ctx = document.getElementById('reportChart').getContext('2d');
-            const chartTypeMap = {
-                'Bar Chart': 'bar',
-                'Line Chart': 'line',
-                'Pie Chart': 'pie',
-                'Scatter Plot': 'scatter'
-            };
-            const chartType = chartTypeMap["{{ chart_data.graph_type }}"] || 'bar';
-            new Chart(ctx, {
-                type: chartType,
-                data: {
-                    labels: {{ chart_data.labels | tojson }},
-                    datasets: [{
-                        label: "{{ chart_data.label }}",
-                        data: {{ chart_data.values | tojson }},
-                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true
-                }
-            });
-            </script>
+
+        <!-- Pass chart_data as JSON -->
+        <script id="chart-data" type="application/json">
+            {{ chart_data | tojson }}
+        </script>
+        <!-- Load external chart logic -->
+        <script src="{{ url_for('static', filename='js/chart-logic.js') }}"></script>
     {% endif %}
 </body>
 </html>
