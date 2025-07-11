@@ -2,100 +2,114 @@
 <html lang="en">
 <head>
     <title>Dynamic Query Builder with Visualization</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>Dynamic Query Builder Engine</h1>
+    <div class="container">
+        <h1>Dynamic Query Builder Engine</h1>
 
-    <h3>Available Fields:</h3>
-    <ul>
-        {% for attr in attributes %}
-            <li>{{ attr }}</li>
-        {% endfor %}
-    </ul>
-
-    <form method="POST">
-        <h4>Select Fields:</h4>
-        {% for attr in attributes %}
-            <input type="checkbox" name="fields" value="{{ attr }}"> {{ attr }}<br>
-        {% endfor %}
-
-        <h4>Filter Options:</h4>
-        <label>Region:</label>
-        <select name="region">
-            <option value="">-- Any Region --</option>
-            {% for r in regions %}
-                <option value="{{ r }}">{{ r }}</option>
-            {% endfor %}
-        </select><br><br>
-
-        <label>Date Range:</label>
-        <span>Available: {{ min_date }} to {{ max_date }}</span><br>
-        <input type="date" name="start_date" min="{{ min_date }}" max="{{ max_date }}">
-        to
-        <input type="date" name="end_date" min="{{ min_date }}" max="{{ max_date }}"><br><br>
-
-        <h4>Aggregate Function (on 'amount'):</h4>
-        <select name="aggregate">
-            <option value="">None</option>
-            <option value="sum">Sum</option>
-            <option value="avg">Average</option>
-            <option value="count">Count</option>
-        </select><br><br>
-
-        <h4>Sorting:</h4>
-        <label>Sort By:</label>
-        <select name="sort_field">
-            <option value="">-- No Sorting --</option>
-            {% for attr in attributes %}
-                <option value="{{ attr }}">{{ attr }}</option>
-            {% endfor %}
-        </select>
-        <select name="sort_order">
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-        </select><br><br>
-
-        <label><input type="checkbox" name="distinct"> Remove Duplicate Rows</label><br><br>
-
-        <h4>Select Graph Type:</h4>
-        <select name="graph_type">
-            {% for gtype in graph_types %}
-                <option value="{{ gtype }}">{{ gtype }}</option>
-            {% endfor %}
-        </select><br><br>
-
-        <button type="submit">Generate Report & Visualize</button>
-    </form>
-
-    {% if report_data %}
-        <h2>Report Results:</h2>
-        <table border="1">
-            <tr>
-                {% for key in report_data[0].keys() %}
-                    <th>{{ key }}</th>
+        <form method="POST" class="query-form">
+            <fieldset>
+                <legend>Select Fields:</legend>
+                {% for attr in attributes %}
+                    <label><input type="checkbox" name="fields" value="{{ attr }}"> {{ attr }}</label><br>
                 {% endfor %}
-            </tr>
-            {% for row in report_data %}
-                <tr>
-                    {% for value in row.values() %}
-                        <td>{{ value }}</td>
+            </fieldset>
+
+            <fieldset>
+                <legend>Filter Options:</legend>
+                <label>Region:</label>
+                <select name="region">
+                    <option value="">-- Any Region --</option>
+                    {% for r in regions %}
+                        <option value="{{ r }}">{{ r }}</option>
                     {% endfor %}
-                </tr>
-            {% endfor %}
-        </table>
-    {% endif %}
+                </select><br><br>
 
-    {% if chart_data %}
-        <h2>Visualization: {{ chart_data.graph_type }}</h2>
-        <canvas id="reportChart" width="400" height="200"></canvas>
+                <label>Date Range:</label><br>
+                <span class="date-range">Available: {{ min_date }} to {{ max_date }}</span><br>
+                <input type="date" name="start_date" min="{{ min_date }}" max="{{ max_date }}"> to
+                <input type="date" name="end_date" min="{{ min_date }}" max="{{ max_date }}"><br>
+            </fieldset>
 
-        <!-- Pass chart_data as JSON -->
-        <script id="chart-data" type="application/json">
-            {{ chart_data | tojson }}
-        </script>
-        <!-- Load external chart logic -->
-        <script src="{{ url_for('static', filename='js/chart-logic.js') }}"></script>
-    {% endif %}
+            <fieldset>
+                <legend>Aggregation & Sorting:</legend>
+                <label>Aggregate Function (on 'amount'):</label>
+                <select name="aggregate">
+                    <option value="">None</option>
+                    <option value="sum">Sum</option>
+                    <option value="avg">Average</option>
+                    <option value="count">Count</option>
+                </select><br><br>
+
+                <label>Sort By:</label>
+                <select name="sort_field">
+                    <option value="">-- No Sorting --</option>
+                    {% for attr in attributes %}
+                        <option value="{{ attr }}">{{ attr }}</option>
+                    {% endfor %}
+                </select>
+                <select name="sort_order">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select><br><br>
+
+                <label><input type="checkbox" name="distinct"> Remove Duplicate Rows</label>
+            </fieldset>
+
+            <fieldset>
+                <legend>Graph Settings:</legend>
+                <label>Select Graph Type:</label>
+                <select name="graph_type">
+                    {% for gtype in graph_types %}
+                        <option value="{{ gtype }}">{{ gtype }}</option>
+                    {% endfor %}
+                </select>
+            </fieldset>
+
+            <button type="submit" class="submit-btn">Generate Report & Visualize</button>
+        </form>
+
+        {% if report_data %}
+            <section class="results-section">
+                <h2>Report Results:</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for key in report_data[0].keys() %}
+                                    <th>{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in report_data %}
+                                <tr>
+                                    {% for value in row.values() %}
+                                        <td>{{ value }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        {% endif %}
+
+        {% if chart_data %}
+            <section class="chart-section">
+                <h2>Visualization: {{ chart_data.graph_type }}</h2>
+                <canvas id="reportChart" width="400" height="200"></canvas>
+
+                <script id="chart-data" type="application/json">
+                    {{ chart_data | tojson }}
+                </script>
+                <script src="{{ url_for('static', filename='js/chart-logic.js') }}"></script>
+            </section>
+        {% endif %}
+    </div>
 </body>
 </html>
