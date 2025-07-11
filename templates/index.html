@@ -102,7 +102,7 @@
         {% if chart_data %}
             <section class="chart-section">
                 <h2>Visualization: {{ chart_data.graph_type }}</h2>
-                <canvas id="reportChart" width="400" height="200"></canvas>
+                <canvas id="reportChart" width="300" height="150"></canvas>
 
                 <script id="chart-data" type="application/json">
                     {{ chart_data | tojson }}

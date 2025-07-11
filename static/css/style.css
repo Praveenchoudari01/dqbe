@@ -119,3 +119,10 @@ h1 {
     font-size: 0.9em;
     color: #666;
 }
+
+#chart-data{
+    height: 200px;
+    width: 100px;
+    margin: auto;
+    border: 2px solid;
+}
