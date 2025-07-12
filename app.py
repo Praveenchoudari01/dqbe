@@ -140,10 +140,20 @@ def index():
         if report_data:
             first_key = list(report_data[0].keys())[0]
             last_key = list(report_data[0].keys())[-1]
-            chart_data['labels'] = [str(row[first_key]) for row in report_data]
-            chart_data['values'] = [float(row[last_key]) if row[last_key] is not None else 0.0 for row in report_data]
-            chart_data['label'] = str(last_key)
-            chart_data['graph_type'] = selected_graph
+            labels = [str(row[first_key]) for row in report_data]
+            raw_values = [row[last_key] for row in report_data]
+
+            # Try converting values to float for visualization
+            try:
+                values = [float(v) if v is not None else 0.0 for v in raw_values]
+                chart_data = {
+                    'labels': labels,
+                    'values': values,
+                    'label': str(last_key),
+                    'graph_type': selected_graph
+                }
+            except (ValueError, TypeError):
+                chart_data = None  # Can't visualize this report
 
     return render_template(
         "index.html",
@@ -158,4 +168,3 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
-

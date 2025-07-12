@@ -114,17 +114,20 @@
             </section>
         {% endif %}
 
-        {% if chart_data %}
-            <section class="chart-section">
-                <h2>Visualization: {{ chart_data.graph_type }}</h2>
+        <section class="chart-section">
+            <h2>Visualization</h2>
+            {% if chart_data and chart_data.labels and chart_data.values %}
+                <h3>{{ chart_data.graph_type }}</h3>
                 <canvas id="reportChart" width="300" height="150"></canvas>
 
                 <script id="chart-data" type="application/json">
                     {{ chart_data | tojson }}
                 </script>
                 <script src="{{ url_for('static', filename='js/chart-logic.js') }}"></script>
-            </section>
-        {% endif %}
+            {% else %}
+                <p>This report does not contain any visualization.</p>
+            {% endif %}
+        </section>
     </div>
 
     <script>
@@ -132,4 +135,4 @@
     </script>
     <script src="{{ url_for('static', filename='js/field-select.js') }}"></script>
 </body>
-</html> 
+</html>
