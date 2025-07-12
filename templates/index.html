@@ -13,10 +13,27 @@
 
         <form method="POST" class="query-form">
             <fieldset>
+                <legend>Select Tables:</legend>
+                <label>Table 1:</label>
+                <select id="table1" name="table1" required>
+                    {% for table in attributes %}
+                        <option value="{{ table }}">{{ table }}</option>
+                    {% endfor %}
+                </select>
+
+                <label>Table 2:</label>
+                <select id="table2" name="table2" required>
+                    {% for table in attributes %}
+                        <option value="{{ table }}">{{ table }}</option>
+                    {% endfor %}
+                </select>
+            </fieldset>
+
+            <fieldset>
                 <legend>Select Fields:</legend>
-                {% for attr in attributes %}
-                    <label><input type="checkbox" name="fields" value="{{ attr }}"> {{ attr }}</label><br>
-                {% endfor %}
+                <div id="field-container">
+                    <!-- Dynamically filled by JS -->
+                </div>
             </fieldset>
 
             <fieldset>
@@ -46,11 +63,9 @@
                 </select><br><br>
 
                 <label>Sort By:</label>
-                <select name="sort_field">
+                <select name="sort_field" id="sort_field">
                     <option value="">-- No Sorting --</option>
-                    {% for attr in attributes %}
-                        <option value="{{ attr }}">{{ attr }}</option>
-                    {% endfor %}
+                    <!-- Populated via JS -->
                 </select>
                 <select name="sort_order">
                     <option value="asc">Ascending</option>
@@ -111,5 +126,10 @@
             </section>
         {% endif %}
     </div>
+
+    <script>
+        window.availableAttributes = {{ attributes | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/field-select.js') }}"></script>
 </body>
 </html>
