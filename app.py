@@ -1,7 +1,6 @@
-from flask import Flask, render_template, request
-from sqlalchemy import create_engine, MetaData, select, and_, func, asc, desc
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+from sqlalchemy import create_engine, MetaData, select, and_, func, asc, desc, text
 from collections import deque
-from sqlalchemy.sql.functions import Function
 
 app = Flask(__name__)
 
@@ -43,10 +42,58 @@ def bfs_join_path(graph, start, end):
                 queue.append(new_path)
     return None
 
+# Temporary in-memory dashboard store
+dashboard_charts = []
+
+@app.route('/add_to_dashboard', methods=['POST'])
+def add_to_dashboard():
+    sql_query = request.form.get('sql_query')
+    chart_type = request.form.get('chart_type')
+    label_field = request.form.get('label_field')
+    value_field = request.form.get('value_field')
+
+    print("ADDING TO DASHBOARD:", sql_query, chart_type, label_field, value_field)
+
+    dashboard_charts.append({
+        "sql_query": sql_query,
+        "chart_type": chart_type,
+        "label_field": label_field,
+        "value_field": value_field
+    })
+
+    return redirect(url_for('index'))
+@app.route('/view_dashboard')
+def view_dashboard():
+    charts = []
+    with engine.connect() as conn:
+        for chart_def in dashboard_charts:
+            try:
+                result = conn.execute(text(chart_def['sql_query']))
+                data = result.mappings().all()
+
+                if not data:
+                    continue
+
+                labels = [str(row[chart_def['label_field']]) for row in data]
+                values = [float(row[chart_def['value_field']]) if isinstance(row[chart_def['value_field']], (int, float)) else 0 for row in data]
+
+                charts.append({
+                    'graph_type': chart_def['chart_type'],
+                    'labels': labels,
+                    'values': values,
+                    'label': chart_def['value_field'],
+                    'query': chart_def['sql_query']
+                })
+
+            except Exception as e:
+                continue
+
+    return render_template('dashboard.html', charts=charts)
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     report_data = []
-    chart_data = {}
+    chart_data = None
     graph_types = ['Bar Chart', 'Line Chart', 'Pie Chart', 'Scatter Plot']
     attributes = {table: [col.name for col in all_tables[table].columns] for table in all_tables}
     regions = ["North", "South", "East", "West"]
@@ -54,6 +101,8 @@ def index():
     with engine.connect() as conn:
         min_date = conn.execute(select(func.min(all_tables["sales"].c.order_date))).scalar()
         max_date = conn.execute(select(func.max(all_tables["sales"].c.order_date))).scalar()
+
+    query_string = ""
 
     if request.method == 'POST':
         table1 = request.form.get('table1')
@@ -90,12 +139,10 @@ def index():
                 if field in table.c:
                     col = table.c[field]
                     columns.append(col)
-                    # Only group by if this isn't the aggregated field
                     if not (aggregate and field == 'amount'):
                         group_columns.append(col)
                     break
 
-        # Aggregate function if applicable
         if aggregate and 'amount' in selected_fields:
             if aggregate == 'sum':
                 agg_column = func.sum(all_tables["sales"].c.amount).label('total_amount')
@@ -103,16 +150,13 @@ def index():
                 agg_column = func.avg(all_tables["sales"].c.amount).label('average_amount')
             elif aggregate == 'count':
                 agg_column = func.count(all_tables["sales"].c.amount).label('count_amount')
-
             if agg_column is not None:
                 columns.append(agg_column)
 
         query = select(*columns).select_from(from_clause)
-
         if distinct:
             query = query.distinct()
 
-        # Filters
         filters = []
         if region:
             filters.append(all_tables["sales"].c.region == region)
@@ -121,17 +165,17 @@ def index():
         if filters:
             query = query.where(and_(*filters))
 
-        # Group By only if aggregate is applied
         if agg_column is not None and group_columns:
             query = query.group_by(*group_columns)
 
-        # Sorting
         if sort_field:
             for table in all_tables.values():
                 if sort_field in table.c:
                     sort_col = table.c[sort_field]
                     query = query.order_by(asc(sort_col) if sort_order == 'asc' else desc(sort_col))
                     break
+
+        query_string = str(query)
 
         with engine.connect() as conn:
             result = conn.execute(query)
@@ -143,17 +187,19 @@ def index():
             labels = [str(row[first_key]) for row in report_data]
             raw_values = [row[last_key] for row in report_data]
 
-            # Try converting values to float for visualization
             try:
                 values = [float(v) if v is not None else 0.0 for v in raw_values]
                 chart_data = {
                     'labels': labels,
                     'values': values,
                     'label': str(last_key),
-                    'graph_type': selected_graph
+                    'graph_type': selected_graph,
+                    'label_field': first_key,
+                    'value_field': last_key,
+                    'query': query_string
                 }
             except (ValueError, TypeError):
-                chart_data = None  # Can't visualize this report
+                chart_data = None
 
     return render_template(
         "index.html",
@@ -163,7 +209,8 @@ def index():
         min_date=min_date,
         max_date=max_date,
         graph_types=graph_types,
-        chart_data=chart_data
+        chart_data=chart_data,
+        query_string=query_string
     )
 
 if __name__ == '__main__':

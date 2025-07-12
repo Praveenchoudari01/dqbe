@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard View</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .chart-card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            width: 90%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: #f9f9f9;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+
+        .query-box {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        a.button {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        a.button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Your Dashboard</h1>
+
+    {% if dashboard %}
+        {% for chart in dashboard %}
+            <div class="chart-card">
+                <h3>{{ chart.chart_type }}: {{ chart.label_field }} vs {{ chart.value_field }}</h3>
+
+                <div class="query-box">
+                    <strong>Query:</strong><br>
+                    {{ chart.sql_query }}
+                </div>
+
+                <canvas id="chart{{ loop.index }}"></canvas>
+
+                <script>
+                    const ctx{{ loop.index }} = document.getElementById('chart{{ loop.index }}').getContext('2d');
+                    new Chart(ctx{{ loop.index }}, {
+                        type: '{{ chart.chart_type|lower|replace(" ", "") }}',
+                        data: {
+                            labels: ['A', 'B', 'C'], // Example labels
+                            datasets: [{
+                                label: '{{ chart.value_field }}',
+                                data: [12, 19, 7],       // Example values
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    display: true
+                                },
+                                title: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                </script>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p style="text-align: center;">No charts added to the dashboard yet.</p>
+    {% endif %}
+
+    <div style="text-align: center;">
+        <a href="{{ url_for('index') }}" class="button">⬅ Back to Query Builder</a>
+    </div>
+</body>
+</html>
