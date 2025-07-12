@@ -45,4 +45,52 @@ VALUES (?, ?, ?, ?, ?)
 conn.commit()
 conn.close()
 
+# Create Customers Table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_name TEXT,
+    email TEXT,
+    phone TEXT,
+    region TEXT
+);
+''')
+
+# Create Products Table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS products (
+    product_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_name TEXT,
+    category TEXT,
+    price INTEGER
+);
+''')
+
+# Insert Sample Customers (same names from sales + random ones)
+customer_names = list(set([row[0] for row in sales_data]))
+for name in customer_names:
+    email = fake.email()
+    phone = fake.phone_number()
+    region = random.choice(regions)
+    cursor.execute('''
+    INSERT INTO customers (customer_name, email, phone, region)
+    VALUES (?, ?, ?, ?)
+    ''', (name, email, phone, region))
+
+# Insert Sample Products (same products as in sales)
+product_categories = ['Electronics', 'Appliances', 'Toys', 'Furniture']
+for product in products:
+    category = random.choice(product_categories)
+    price = random.randint(100, 2000)
+    cursor.execute('''
+    INSERT INTO products (product_name, category, price)
+    VALUES (?, ?, ?)
+    ''', (product, category, price))
+
+# Commit & Close
+conn.commit()
+conn.close()
+
+print("Customers and Products tables created with sample data.")
+
 print("Database 'sales.db' created with 100 sample sales records.")
