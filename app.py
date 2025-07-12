@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
-from sqlalchemy import create_engine, MetaData, Table, select, and_, func, asc, desc
+from sqlalchemy import create_engine, MetaData, select, and_, func, asc, desc
 from collections import deque
+from sqlalchemy.sql.functions import Function
 
 app = Flask(__name__)
 
@@ -9,25 +10,23 @@ engine = create_engine("sqlite:///sales.db")
 metadata = MetaData()
 metadata.reflect(bind=engine)
 
-sales = metadata.tables['sales']
-customers = metadata.tables['customers']
-products = metadata.tables['products']
+# Dynamically get all tables
+all_tables = {table.name: table for table in metadata.sorted_tables}
 
-# Join graph definition
+# Build join graph dynamically (assumes some column matches for demo)
 join_graph = {
     "sales": {
-        "customers": sales.c.customer_name == customers.c.customer_name,
-        "products": sales.c.product == products.c.product_name
+        "customers": all_tables["sales"].c.customer_name == all_tables["customers"].c.customer_name,
+        "products": all_tables["sales"].c.product == all_tables["products"].c.product_name,
     },
     "customers": {
-        "sales": customers.c.customer_name == sales.c.customer_name
+        "sales": all_tables["customers"].c.customer_name == all_tables["sales"].c.customer_name,
     },
     "products": {
-        "sales": products.c.product_name == sales.c.product
+        "sales": all_tables["products"].c.product_name == all_tables["sales"].c.product,
     }
 }
 
-# BFS to find join path
 def bfs_join_path(graph, start, end):
     queue = deque([[start]])
     visited = set()
@@ -49,13 +48,12 @@ def index():
     report_data = []
     chart_data = {}
     graph_types = ['Bar Chart', 'Line Chart', 'Pie Chart', 'Scatter Plot']
-    all_tables = {"sales": sales, "customers": customers, "products": products}
     attributes = {table: [col.name for col in all_tables[table].columns] for table in all_tables}
     regions = ["North", "South", "East", "West"]
 
     with engine.connect() as conn:
-        min_date = conn.execute(select(func.min(sales.c.order_date))).scalar()
-        max_date = conn.execute(select(func.max(sales.c.order_date))).scalar()
+        min_date = conn.execute(select(func.min(all_tables["sales"].c.order_date))).scalar()
+        max_date = conn.execute(select(func.max(all_tables["sales"].c.order_date))).scalar()
 
     if request.method == 'POST':
         table1 = request.form.get('table1')
@@ -72,11 +70,10 @@ def index():
 
         path = bfs_join_path(join_graph, table1, table2)
         if not path:
-            return render_template("index.html", attributes=attributes, regions=regions, 
-                                   min_date=min_date, max_date=max_date, graph_types=graph_types, 
+            return render_template("index.html", attributes=attributes, regions=regions,
+                                   min_date=min_date, max_date=max_date, graph_types=graph_types,
                                    error="No join path found between selected tables.")
 
-        from sqlalchemy.sql import Join
         from_clause = all_tables[path[0]]
         for i in range(1, len(path)):
             left = path[i - 1]
@@ -85,40 +82,50 @@ def index():
             from_clause = from_clause.join(all_tables[right], join_condition)
 
         columns = []
+        group_columns = []
+        agg_column = None
+
         for field in selected_fields:
             for table in all_tables.values():
                 if field in table.c:
-                    columns.append(table.c[field])
+                    col = table.c[field]
+                    columns.append(col)
+                    # Only group by if this isn't the aggregated field
+                    if not (aggregate and field == 'amount'):
+                        group_columns.append(col)
                     break
 
+        # Aggregate function if applicable
         if aggregate and 'amount' in selected_fields:
             if aggregate == 'sum':
-                agg_column = func.sum(sales.c.amount).label('total_amount')
+                agg_column = func.sum(all_tables["sales"].c.amount).label('total_amount')
             elif aggregate == 'avg':
-                agg_column = func.avg(sales.c.amount).label('average_amount')
+                agg_column = func.avg(all_tables["sales"].c.amount).label('average_amount')
             elif aggregate == 'count':
-                agg_column = func.count(sales.c.amount).label('count_amount')
-            else:
-                agg_column = sales.c.amount
-            columns.append(agg_column)
+                agg_column = func.count(all_tables["sales"].c.amount).label('count_amount')
+
+            if agg_column is not None:
+                columns.append(agg_column)
 
         query = select(*columns).select_from(from_clause)
+
         if distinct:
             query = query.distinct()
 
+        # Filters
         filters = []
         if region:
-            filters.append(sales.c.region == region)
+            filters.append(all_tables["sales"].c.region == region)
         if start_date and end_date:
-            filters.append(sales.c.order_date.between(start_date, end_date))
+            filters.append(all_tables["sales"].c.order_date.between(start_date, end_date))
         if filters:
             query = query.where(and_(*filters))
 
-        if aggregate:
-            group_columns = [col for col in columns if not isinstance(col, (func.count, func.sum, func.avg))]
-            if group_columns:
-                query = query.group_by(*group_columns)
+        # Group By only if aggregate is applied
+        if agg_column is not None and group_columns:
+            query = query.group_by(*group_columns)
 
+        # Sorting
         if sort_field:
             for table in all_tables.values():
                 if sort_field in table.c:
