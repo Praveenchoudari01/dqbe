@@ -141,16 +141,17 @@ def update_chart_action():
     chart_id = int(request.form.get('chart_id'))
     action = request.form.get('action')
 
-    charts = session.get('dashboard_charts', [])
+    if 'dashboard_charts' in session:
+        charts = session['dashboard_charts']
+        if 0 <= chart_id < len(charts):
+            if action == 'remove':
+                charts.pop(chart_id)
+            elif action == 'save':
+                charts[chart_id]['saved'] = True
 
-    if 0 <= chart_id < len(charts):
-        if action == "remove":
-            charts.pop(chart_id)
-        elif action == "save":
-            charts[chart_id]['saved'] = True
+        session['dashboard_charts'] = charts
 
-    session['dashboard_charts'] = charts
-    return redirect(url_for('view_dashboard'))  # Adjust if your view route is named differently
+    return redirect(url_for('view_dashboard'))
 
 
 @app.route('/', methods=['GET', 'POST'])
