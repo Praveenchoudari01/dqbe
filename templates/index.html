@@ -22,7 +22,8 @@
                 </select>
 
                 <label>Table 2:</label>
-                <select id="table2" name="table2" required>
+                <select id="table2" name="table2">
+                    <option value="">-- None --</option>
                     {% for table in attributes %}
                         <option value="{{ table }}">{{ table }}</option>
                     {% endfor %}
@@ -54,30 +55,34 @@
 
             <fieldset>
                 <legend>Aggregation & Sorting:</legend>
-                <label>Aggregate Function (on 'amount'):</label>
+
+                <label>Aggregate Function:</label>
                 <select name="aggregate">
                     <option value="">None</option>
                     <option value="sum">Sum</option>
                     <option value="avg">Average</option>
                     <option value="count">Count</option>
+                </select>
+
+                <label>On Field:</label>
+                <select name="aggregate_field" id="aggregate_field">
+                    <option value="">-- Select Field --</option>
+                    <!-- Populated dynamically -->
                 </select><br><br>
 
-                <!-- ✅ Group By Field (added dropdown) -->
                 <label>Group By Field:</label>
-                <select name="group_by">
+                <select name="group_by" id="group_by">
                     <option value="">-- No Grouping --</option>
-                    {% for attr in groupable_fields %}
-                        <option value="{{ attr }}">{{ attr }}</option>
-                    {% endfor %}
+                    <!-- Populated dynamically -->
                 </select>
                 <br><br>
 
                 <label>Sort By:</label>
                 <select name="sort_field" id="sort_field">
                     <option value="">-- No Sorting --</option>
-                    <!-- Populated via JS -->
+                    <!-- Populated dynamically -->
                 </select>
-                <br><br>
+
                 <select name="sort_order">
                     <option value="asc">Ascending</option>
                     <option value="desc">Descending</option>
@@ -139,7 +144,6 @@
                 <p>This report does not contain any visualization.</p>
             {% endif %}
 
-            <!-- Add to Dashboard and View Dashboard buttons -->
             {% if chart_data %}
                 <form method="POST" action="{{ url_for('add_to_dashboard') }}">
                     <input type="hidden" name="sql_query" value="{{ chart_data.query }}">

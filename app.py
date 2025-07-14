@@ -154,6 +154,7 @@ def index():
         start_date = request.form.get('start_date')
         end_date = request.form.get('end_date')
         aggregate = request.form.get('aggregate')
+        aggregate_field = request.form.get('aggregate_field')  # <-- ✅ ADDED THIS LINE
         sort_field = request.form.get('sort_field')
         sort_order = request.form.get('sort_order')
         distinct = request.form.get('distinct') == 'on'
@@ -198,18 +199,20 @@ def index():
                     break
 
         # Handle aggregation
-        if aggregate:
-            if aggregate == 'sum':
-                agg_column = func.sum(all_tables["sales"].c.amount).label('total_amount')
-            elif aggregate == 'avg':
-                agg_column = func.avg(all_tables["sales"].c.amount).label('average_amount')
-            elif aggregate == 'count':
-                agg_column = func.count(all_tables["sales"].c.amount).label('count_amount')
-
+        if aggregate and aggregate_field:
+            for table_name, table in all_tables.items():
+                if aggregate_field in table.c:
+                    target_col = table.c[aggregate_field]
+                    if aggregate == 'sum':
+                        agg_column = func.sum(target_col).label(f"sum_{aggregate_field}")
+                    elif aggregate == 'avg':
+                        agg_column = func.avg(target_col).label(f"avg_{aggregate_field}")
+                    elif aggregate == 'count':
+                        agg_column = func.count(target_col).label(f"count_{aggregate_field}")
+                    break
             if agg_column is not None:
                 columns.append(agg_column)
         else:
-            # No aggregation: include all selected fields
             for field in selected_fields:
                 for table in selected_tables:
                     if field in table.c:
@@ -269,7 +272,6 @@ def index():
             except (ValueError, TypeError):
                 chart_data = None
     else:
-        # Initial page load
         groupable_fields = [col for table in attributes for col in attributes[table] if col.lower() not in ('id', 'amount')]
 
     return render_template(
