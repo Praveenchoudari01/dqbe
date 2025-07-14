@@ -64,13 +64,13 @@
             <div class="chart-card">
                 <h3>{{ chart.graph_type }}: {{ chart.label_field }} vs {{ chart.value_field }}</h3>
 
-                <div class="query-box">
+                <!-- <div class="query-box">
                     <strong>Query:</strong><br>
                     {{ chart.sql_query }}
                     <p>Labels: {{ chart["labels"] }}</p>
                     <p>Values: {{ chart["values"] }}</p>
                     <p>Values: {{ chart["graph_type"] }}</p>
-                </div>
+                </div> -->
 
                 <canvas id="chart{{ loop.index }}"></canvas>
 
