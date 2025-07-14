@@ -40,19 +40,32 @@
             overflow-x: auto;
         }
 
-        a.button {
+        .button {
             display: inline-block;
             padding: 10px 15px;
-            background-color: #007BFF;
             color: white;
             border-radius: 5px;
             text-decoration: none;
-            margin-top: 20px;
+            margin-top: 10px;
             text-align: center;
+            border: none;
+            cursor: pointer;
         }
 
-        a.button:hover {
-            background-color: #0056b3;
+        .button.save {
+            background-color: #28a745;
+        }
+
+        .button.remove {
+            background-color: #dc3545;
+        }
+
+        .button:hover {
+            opacity: 0.85;
+        }
+
+        .center {
+            text-align: center;
         }
     </style>
 </head>
@@ -64,19 +77,20 @@
             <div class="chart-card">
                 <h3>{{ chart.graph_type }}: {{ chart.label_field }} vs {{ chart.value_field }}</h3>
 
-                <!-- <div class="query-box">
-                    <strong>Query:</strong><br>
-                    {{ chart.sql_query }}
-                    <p>Labels: {{ chart["labels"] }}</p>
-                    <p>Values: {{ chart["values"] }}</p>
-                    <p>Values: {{ chart["graph_type"] }}</p>
-                </div> -->
+                {% if chart.get('saved') %}
+                    <p style="color: green;"><strong>✅ Chart Saved</strong></p>
+                {% endif %}
 
                 <canvas id="chart{{ loop.index }}"></canvas>
 
+                <form method="POST" action="{{ url_for('update_chart_action') }}" class="center">
+                    <input type="hidden" name="chart_id" value="{{ loop.index0 }}">
+                    <button type="submit" name="action" value="save" class="button save">✅ Save</button>
+                    <button type="submit" name="action" value="remove" class="button remove">🗑 Remove</button>
+                </form>
+
                 <script>
                     window.addEventListener('DOMContentLoaded', function () {
-                        console.log("📊 Chart {{ loop.index }} initializing...");
                         const canvasId = 'chart{{ loop.index }}';
                         const ctx = document.getElementById(canvasId);
 
@@ -87,12 +101,7 @@
 
                         const chartLabels = {{ chart["labels"] | tojson }};
                         const chartValues = {{ chart["values"] | tojson }};
-                        const chartType = '{{ chart["graph_type"] | lower | replace(" ", "") }}';
-
-                        console.log("✅ Canvas found:", canvasId);
-                        console.log("➡️ Chart type:", chartType);
-                        console.log("➡️ Labels:", chartLabels);
-                        console.log("➡️ Values:", chartValues);
+                        const chartType = '{{ chart["graph_type"] }}';
 
                         new Chart(ctx.getContext('2d'), {
                             type: chartType,
@@ -123,15 +132,14 @@
                         });
                     });
                 </script>
-
             </div>
         {% endfor %}
     {% else %}
         <p style="text-align: center;">No charts added to the dashboard yet.</p>
     {% endif %}
 
-    <div style="text-align: center;">
-        <a href="{{ url_for('index') }}" class="button">⬅ Back to Query Builder</a>
+    <div class="center">
+        <a href="{{ url_for('index') }}" class="button" style="background-color: #007BFF;">⬅ Back to Query Builder</a>
     </div>
 </body>
 </html>

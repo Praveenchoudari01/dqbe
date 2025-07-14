@@ -136,6 +136,23 @@ def view_dashboard():
 
     return render_template('dashboard.html', dashboard=charts)
 
+@app.route('/update_chart_action', methods=['POST'])
+def update_chart_action():
+    chart_id = int(request.form.get('chart_id'))
+    action = request.form.get('action')
+
+    charts = session.get('dashboard_charts', [])
+
+    if 0 <= chart_id < len(charts):
+        if action == "remove":
+            charts.pop(chart_id)
+        elif action == "save":
+            charts[chart_id]['saved'] = True
+
+    session['dashboard_charts'] = charts
+    return redirect(url_for('view_dashboard'))  # Adjust if your view route is named differently
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     report_data = []
