@@ -46,12 +46,39 @@ def bfs_join_path(graph, start, end):
 @app.route('/add_to_dashboard', methods=['POST'])
 def add_to_dashboard():
     sql_query = request.form.get('sql_query')
-    chart_type = request.form.get('chart_type')
+    selected_type = request.form.get('chart_type')  # This comes from the dropdown (e.g., "Bar Chart")
     label_field = request.form.get('label_field')
     value_field = request.form.get('value_field')
 
-    print("ADDING TO DASHBOARD:", sql_query, chart_type, label_field, value_field)
+    print("ADDING TO DASHBOARD:", sql_query, selected_type, label_field, value_field)
 
+    # Normalize and map user-friendly chart types to valid Chart.js types
+    normalized_type = selected_type.strip().lower() if selected_type else ""
+
+    chart_type_map = {
+        "bar chart": "bar",
+        "barchart": "bar",
+        "bar": "bar",
+        "line chart": "line",
+        "linechart": "line",
+        "line": "line",
+        "pie chart": "pie",
+        "piechart": "pie",
+        "pie": "pie",
+        "doughnut chart": "doughnut",
+        "doughnutchart": "doughnut",
+        "doughnut": "doughnut",
+        "radar chart": "radar",
+        "radarchart": "radar",
+        "radar": "radar",
+        "polar area": "polarArea",
+        "polararea": "polarArea"
+    }
+
+    # Get the valid chart.js type, defaulting to 'bar'
+    chart_type = chart_type_map.get(normalized_type, 'bar')
+
+    # Initialize dashboard chart store in session if not present
     if 'dashboard_charts' not in session:
         session['dashboard_charts'] = []
 
@@ -63,7 +90,7 @@ def add_to_dashboard():
         "value_field": value_field
     })
 
-    session['dashboard_charts'] = charts
+    session['dashboard_charts'] = charts  # Reassign back to session
 
     return redirect(url_for('index'))
 

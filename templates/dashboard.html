@@ -62,38 +62,68 @@
     {% if dashboard %}
         {% for chart in dashboard %}
             <div class="chart-card">
-                <h3>{{ chart.chart_type }}: {{ chart.label_field }} vs {{ chart.value_field }}</h3>
+                <h3>{{ chart.graph_type }}: {{ chart.label_field }} vs {{ chart.value_field }}</h3>
 
                 <div class="query-box">
                     <strong>Query:</strong><br>
                     {{ chart.sql_query }}
+                    <p>Labels: {{ chart["labels"] }}</p>
+                    <p>Values: {{ chart["values"] }}</p>
+                    <p>Values: {{ chart["graph_type"] }}</p>
                 </div>
 
                 <canvas id="chart{{ loop.index }}"></canvas>
 
-            <script>
-                const ctx{{ loop.index }} = document.getElementById('chart{{ loop.index }}').getContext('2d');
-                new Chart(ctx{{ loop.index }}, {
-                    type: '{{ chart.graph_type|lower|replace(" ", "") }}',
-                    data: {
-                        labels: {{ chart["labels"] | tojson }},
-                        datasets: [{
-                            label: '{{ chart["label"] }}',
-                            data: {{ chart["values"] | tojson }},
-                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { display: true },
-                            title: { display: false }
+                <script>
+                    window.addEventListener('DOMContentLoaded', function () {
+                        console.log("📊 Chart {{ loop.index }} initializing...");
+                        const canvasId = 'chart{{ loop.index }}';
+                        const ctx = document.getElementById(canvasId);
+
+                        if (!ctx) {
+                            console.error("❌ Canvas not found:", canvasId);
+                            return;
                         }
-                    }
-                });
-            </script>
+
+                        const chartLabels = {{ chart["labels"] | tojson }};
+                        const chartValues = {{ chart["values"] | tojson }};
+                        const chartType = '{{ chart["graph_type"] | lower | replace(" ", "") }}';
+
+                        console.log("✅ Canvas found:", canvasId);
+                        console.log("➡️ Chart type:", chartType);
+                        console.log("➡️ Labels:", chartLabels);
+                        console.log("➡️ Values:", chartValues);
+
+                        new Chart(ctx.getContext('2d'), {
+                            type: chartType,
+                            data: {
+                                labels: chartLabels,
+                                datasets: [{
+                                    label: '{{ chart.label }}',
+                                    data: chartValues,
+                                    backgroundColor: [
+                                        'rgba(75, 192, 192, 0.6)',
+                                        'rgba(255, 99, 132, 0.6)',
+                                        'rgba(255, 206, 86, 0.6)',
+                                        'rgba(54, 162, 235, 0.6)',
+                                        'rgba(153, 102, 255, 0.6)',
+                                        'rgba(255, 159, 64, 0.6)'
+                                    ],
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: { display: true },
+                                    title: { display: true, text: '{{ chart.graph_type }} Chart' }
+                                }
+                            }
+                        });
+                    });
+                </script>
+
             </div>
         {% endfor %}
     {% else %}
