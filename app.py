@@ -55,40 +55,53 @@ def add_to_dashboard():
     print("ADDING TO DASHBOARD:", sql_query, chart_type, label_field, value_field)
 
     dashboard_charts.append({
-        "sql_query": sql_query,
-        "chart_type": chart_type,
+        "query": sql_query,
+        "graph_type": chart_type,
         "label_field": label_field,
         "value_field": value_field
     })
 
     return redirect(url_for('index'))
+
+
 @app.route('/view_dashboard')
 def view_dashboard():
     charts = []
+
     with engine.connect() as conn:
         for chart_def in dashboard_charts:
             try:
-                result = conn.execute(text(chart_def['sql_query']))
+                result = conn.execute(text(chart_def['query']))
                 data = result.mappings().all()
 
                 if not data:
                     continue
 
-                labels = [str(row[chart_def['label_field']]) for row in data]
-                values = [float(row[chart_def['value_field']]) if isinstance(row[chart_def['value_field']], (int, float)) else 0 for row in data]
+                labels = [str(row.get(chart_def['label_field'], '')) for row in data]
+
+                values = []
+                for row in data:
+                    raw_value = row.get(chart_def['value_field'], 0)
+                    try:
+                        values.append(float(raw_value))
+                    except (ValueError, TypeError):
+                        values.append(0.0)
 
                 charts.append({
-                    'graph_type': chart_def['chart_type'],
-                    'labels': labels,
-                    'values': values,
-                    'label': chart_def['value_field'],
-                    'query': chart_def['sql_query']
+                    'graph_type': chart_def['graph_type'],     # chart type (e.g., bar, pie)
+                    'labels': labels,                          # X-axis or category labels
+                    'values': list(values),                          # Y-axis data (as list)
+                    'label': chart_def['value_field'],         # Chart title label
+                    'label_field': chart_def['label_field'],
+                    'value_field': chart_def['value_field'],
+                    'sql_query': chart_def['query']            # For display/debugging
                 })
 
             except Exception as e:
+                print("Chart render error:", e)
                 continue
 
-    return render_template('dashboard.html', charts=charts)
+    return render_template('dashboard.html', dashboard=charts)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():

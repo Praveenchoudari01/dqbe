@@ -135,8 +135,11 @@
                     <input type="hidden" name="label_field" value="{{ chart_data.label_field }}">
                     <input type="hidden" name="value_field" value="{{ chart_data.value_field }}">
                     <button type="submit">Add to Dashboard</button>
-                    <a href="{{ url_for('view_dashboard') }}"><button type="button">View Dashboard</button></a>
                 </form>
+
+                <a href="{{ url_for('view_dashboard') }}">
+                    <button type="button">View Dashboard</button>
+                </a>
 
         </section>
     </div>
