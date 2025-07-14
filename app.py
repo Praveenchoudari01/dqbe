@@ -13,7 +13,7 @@ metadata.reflect(bind=engine)
 # Dynamically get all tables
 all_tables = {table.name: table for table in metadata.sorted_tables}
 
-# Build join graph dynamically (assumes some column matches for demo)
+# Build join graph dynamically
 join_graph = {
     "sales": {
         "customers": all_tables["sales"].c.customer_name == all_tables["customers"].c.customer_name,
@@ -53,23 +53,12 @@ def add_to_dashboard():
     normalized_type = selected_type.strip().lower() if selected_type else ""
 
     chart_type_map = {
-        "bar chart": "bar",
-        "barchart": "bar",
-        "bar": "bar",
-        "line chart": "line",
-        "linechart": "line",
-        "line": "line",
-        "pie chart": "pie",
-        "piechart": "pie",
-        "pie": "pie",
-        "doughnut chart": "doughnut",
-        "doughnutchart": "doughnut",
-        "doughnut": "doughnut",
-        "radar chart": "radar",
-        "radarchart": "radar",
-        "radar": "radar",
-        "polar area": "polarArea",
-        "polararea": "polarArea"
+        "bar chart": "bar", "barchart": "bar", "bar": "bar",
+        "line chart": "line", "linechart": "line", "line": "line",
+        "pie chart": "pie", "piechart": "pie", "pie": "pie",
+        "doughnut chart": "doughnut", "doughnutchart": "doughnut", "doughnut": "doughnut",
+        "radar chart": "radar", "radarchart": "radar", "radar": "radar",
+        "polar area": "polarArea", "polararea": "polarArea"
     }
 
     chart_type = chart_type_map.get(normalized_type, 'bar')
@@ -86,7 +75,6 @@ def add_to_dashboard():
     })
 
     session['dashboard_charts'] = charts
-
     return redirect(url_for('index'))
 
 @app.route('/view_dashboard')
@@ -142,7 +130,6 @@ def update_chart_action():
         session['dashboard_charts'] = charts
 
     return redirect(url_for('view_dashboard'))
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     report_data = []
@@ -173,11 +160,17 @@ def index():
         selected_graph = request.form.get('graph_type')
         group_by_field = request.form.get('group_by')
 
+        selected_tables = []
+        if table1:
+            selected_tables.append(all_tables[table1])
+        if table2 and table2 != table1:
+            selected_tables.append(all_tables[table2])
+
         if table1 and table2:
             all_columns = list(set(attributes.get(table1, []) + attributes.get(table2, [])))
             groupable_fields = [col for col in all_columns if col.lower() not in ('id', 'amount')]
 
-        path = bfs_join_path(join_graph, table1, table2)
+        path = bfs_join_path(join_graph, table1, table2) if table2 else [table1]
         if not path:
             return render_template("index.html", attributes=attributes, regions=regions,
                                    min_date=min_date, max_date=max_date, graph_types=graph_types,
@@ -195,35 +188,37 @@ def index():
         group_columns = []
         agg_column = None
 
-        for field in selected_fields:
-            for table in all_tables.values():
-                if field in table.c:
-                    col = table.c[field]
-                    columns.append(col)
-                    if not (aggregate and field == 'amount'):
-                        group_columns.append(col)
-                    break
-
+        # Handle group_by field
         if group_by_field:
-            for table in all_tables.values():
+            for table in selected_tables:
                 if group_by_field in table.c:
                     group_col = table.c[group_by_field]
-                    if group_col not in columns:
-                        columns.append(group_col)
-                    if group_col not in group_columns:
-                        group_columns.append(group_col)
+                    group_columns.append(group_col)
+                    columns.append(group_col)
                     break
 
-        if aggregate and 'amount' in selected_fields:
+        # Handle aggregation
+        if aggregate:
             if aggregate == 'sum':
                 agg_column = func.sum(all_tables["sales"].c.amount).label('total_amount')
             elif aggregate == 'avg':
                 agg_column = func.avg(all_tables["sales"].c.amount).label('average_amount')
             elif aggregate == 'count':
                 agg_column = func.count(all_tables["sales"].c.amount).label('count_amount')
+
             if agg_column is not None:
                 columns.append(agg_column)
+        else:
+            # No aggregation: include all selected fields
+            for field in selected_fields:
+                for table in selected_tables:
+                    if field in table.c:
+                        col = table.c[field]
+                        if col not in columns:
+                            columns.append(col)
+                        break
 
+        # Build query
         query = select(*columns).select_from(from_clause)
         if distinct:
             query = query.distinct()
@@ -240,18 +235,20 @@ def index():
             query = query.group_by(*group_columns)
 
         if sort_field:
-            for table in all_tables.values():
+            for table in selected_tables:
                 if sort_field in table.c:
                     sort_col = table.c[sort_field]
                     query = query.order_by(asc(sort_col) if sort_order == 'asc' else desc(sort_col))
                     break
 
         query_string = str(query)
+        print("\n[Generated SQL Query by DQBE]:\n", query_string)
 
         with engine.connect() as conn:
             result = conn.execute(query)
             report_data = result.mappings().all()
 
+        # Prepare chart data
         if report_data:
             first_key = list(report_data[0].keys())[0]
             last_key = list(report_data[0].keys())[-1]
@@ -272,6 +269,7 @@ def index():
             except (ValueError, TypeError):
                 chart_data = None
     else:
+        # Initial page load
         groupable_fields = [col for table in attributes for col in attributes[table] if col.lower() not in ('id', 'amount')]
 
     return render_template(

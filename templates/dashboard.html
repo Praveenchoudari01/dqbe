@@ -120,16 +120,11 @@
         data: {
           labels: {{ chart['labels'] | tojson }},
           datasets: [{
-            label: '{{ chart["label"] or "Data" }}',
+            label: '{{ chart["value_field"] }}',
             data: {{ chart['values'] | tojson }},
-            backgroundColor: [
-              'rgba(75, 192, 192, 0.6)',
-              'rgba(255, 99, 132, 0.6)',
-              'rgba(255, 206, 86, 0.6)',
-              'rgba(54, 162, 235, 0.6)',
-              'rgba(153, 102, 255, 0.6)',
-              'rgba(255, 159, 64, 0.6)'
-            ],
+            backgroundColor: Array.from({length: {{ chart['labels'] | length }}}, (_, i) =>
+              `rgba(${Math.floor(Math.random()*255)}, ${Math.floor(Math.random()*255)}, ${Math.floor(Math.random()*255)}, 0.6)`
+            ),
             borderColor: 'rgba(54, 162, 235, 1)',
             borderWidth: 1
           }]
@@ -139,7 +134,15 @@
           maintainAspectRatio: false,
           plugins: {
             legend: { display: true },
-            title: { display: true, text: '{{ chart["graph_type"] }} Chart' }
+            title: {
+              display: true,
+              text: '{{ chart["graph_type"] }} Chart of {{ chart.label_field }} vs {{ chart.value_field }}'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
           }
         }
       });
@@ -147,7 +150,6 @@
     {% endfor %}
   });
 </script>
-
 
 </body>
 </html>
