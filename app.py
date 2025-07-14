@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, MetaData, select, and_, func, asc, desc, t
 from collections import deque
 
 app = Flask(__name__)
-app.secret_key = 'dqbe_dashboard' 
+app.secret_key = 'dqbe_dashboard'
 
 # Database setup
 engine = create_engine("sqlite:///sales.db")
@@ -157,6 +157,7 @@ def index():
 
     query_string = ""
     all_columns = []
+    groupable_fields = []
 
     if request.method == 'POST':
         table1 = request.form.get('table1')
@@ -170,15 +171,17 @@ def index():
         sort_order = request.form.get('sort_order')
         distinct = request.form.get('distinct') == 'on'
         selected_graph = request.form.get('graph_type')
+        group_by_field = request.form.get('group_by')
 
         if table1 and table2:
             all_columns = list(set(attributes.get(table1, []) + attributes.get(table2, [])))
+            groupable_fields = [col for col in all_columns if col.lower() not in ('id', 'amount')]
 
         path = bfs_join_path(join_graph, table1, table2)
         if not path:
             return render_template("index.html", attributes=attributes, regions=regions,
                                    min_date=min_date, max_date=max_date, graph_types=graph_types,
-                                   all_columns=all_columns,
+                                   all_columns=all_columns, groupable_fields=groupable_fields,
                                    error="No join path found between selected tables.")
 
         from_clause = all_tables[path[0]]
@@ -199,6 +202,16 @@ def index():
                     columns.append(col)
                     if not (aggregate and field == 'amount'):
                         group_columns.append(col)
+                    break
+
+        if group_by_field:
+            for table in all_tables.values():
+                if group_by_field in table.c:
+                    group_col = table.c[group_by_field]
+                    if group_col not in columns:
+                        columns.append(group_col)
+                    if group_col not in group_columns:
+                        group_columns.append(group_col)
                     break
 
         if aggregate and 'amount' in selected_fields:
@@ -223,7 +236,7 @@ def index():
         if filters:
             query = query.where(and_(*filters))
 
-        if agg_column is not None and group_columns:
+        if group_columns:
             query = query.group_by(*group_columns)
 
         if sort_field:
@@ -258,6 +271,8 @@ def index():
                 }
             except (ValueError, TypeError):
                 chart_data = None
+    else:
+        groupable_fields = [col for table in attributes for col in attributes[table] if col.lower() not in ('id', 'amount')]
 
     return render_template(
         "index.html",
@@ -269,7 +284,8 @@ def index():
         graph_types=graph_types,
         chart_data=chart_data,
         query_string=query_string,
-        all_columns=all_columns
+        all_columns=all_columns,
+        groupable_fields=groupable_fields
     )
 
 if __name__ == '__main__':
