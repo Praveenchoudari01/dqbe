@@ -62,6 +62,17 @@
                     <option value="count">Count</option>
                 </select><br><br>
 
+                    <!-- ✅ Group By Field Added Here -->
+                <label>Group By Field:</label>
+                <select name="group_by">
+                    <option value="">-- No Grouping --</option>
+                    {% for attr in all_columns %}
+                        <option value="{{ attr }}">{{ attr }}</option>
+                    {% endfor %}
+                </select>
+                <br><br>
+
+                
                 <label>Sort By:</label>
                 <select name="sort_field" id="sort_field">
                     <option value="">-- No Sorting --</option>

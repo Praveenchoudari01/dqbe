@@ -46,13 +46,10 @@ def bfs_join_path(graph, start, end):
 @app.route('/add_to_dashboard', methods=['POST'])
 def add_to_dashboard():
     sql_query = request.form.get('sql_query')
-    selected_type = request.form.get('chart_type')  # This comes from the dropdown (e.g., "Bar Chart")
+    selected_type = request.form.get('chart_type')
     label_field = request.form.get('label_field')
     value_field = request.form.get('value_field')
 
-    print("ADDING TO DASHBOARD:", sql_query, selected_type, label_field, value_field)
-
-    # Normalize and map user-friendly chart types to valid Chart.js types
     normalized_type = selected_type.strip().lower() if selected_type else ""
 
     chart_type_map = {
@@ -75,10 +72,8 @@ def add_to_dashboard():
         "polararea": "polarArea"
     }
 
-    # Get the valid chart.js type, defaulting to 'bar'
     chart_type = chart_type_map.get(normalized_type, 'bar')
 
-    # Initialize dashboard chart store in session if not present
     if 'dashboard_charts' not in session:
         session['dashboard_charts'] = []
 
@@ -90,15 +85,13 @@ def add_to_dashboard():
         "value_field": value_field
     })
 
-    session['dashboard_charts'] = charts  # Reassign back to session
+    session['dashboard_charts'] = charts
 
     return redirect(url_for('index'))
-
 
 @app.route('/view_dashboard')
 def view_dashboard():
     charts = []
-
     dashboard_charts = session.get('dashboard_charts', [])
 
     with engine.connect() as conn:
@@ -106,12 +99,10 @@ def view_dashboard():
             try:
                 result = conn.execute(text(chart_def['query']))
                 data = result.mappings().all()
-
                 if not data:
                     continue
 
                 labels = [str(row.get(chart_def['label_field'], '')) for row in data]
-
                 values = []
                 for row in data:
                     raw_value = row.get(chart_def['value_field'], 0)
@@ -123,13 +114,12 @@ def view_dashboard():
                 charts.append({
                     'graph_type': chart_def['graph_type'],
                     'labels': labels,
-                    'values': values,  # already a list
+                    'values': values,
                     'label': chart_def['value_field'],
                     'label_field': chart_def['label_field'],
                     'value_field': chart_def['value_field'],
                     'sql_query': chart_def['query']
                 })
-
             except Exception as e:
                 print("Chart render error:", e)
                 continue
@@ -153,7 +143,6 @@ def update_chart_action():
 
     return redirect(url_for('view_dashboard'))
 
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     report_data = []
@@ -167,6 +156,7 @@ def index():
         max_date = conn.execute(select(func.max(all_tables["sales"].c.order_date))).scalar()
 
     query_string = ""
+    all_columns = []
 
     if request.method == 'POST':
         table1 = request.form.get('table1')
@@ -181,10 +171,14 @@ def index():
         distinct = request.form.get('distinct') == 'on'
         selected_graph = request.form.get('graph_type')
 
+        if table1 and table2:
+            all_columns = list(set(attributes.get(table1, []) + attributes.get(table2, [])))
+
         path = bfs_join_path(join_graph, table1, table2)
         if not path:
             return render_template("index.html", attributes=attributes, regions=regions,
                                    min_date=min_date, max_date=max_date, graph_types=graph_types,
+                                   all_columns=all_columns,
                                    error="No join path found between selected tables.")
 
         from_clause = all_tables[path[0]]
@@ -274,7 +268,8 @@ def index():
         max_date=max_date,
         graph_types=graph_types,
         chart_data=chart_data,
-        query_string=query_string
+        query_string=query_string,
+        all_columns=all_columns
     )
 
 if __name__ == '__main__':
