@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 from sqlalchemy import create_engine, MetaData, select, and_, func, asc, desc, text
 from collections import deque
 
 app = Flask(__name__)
+app.secret_key = 'dqbe_dashboard' 
 
 # Database setup
 engine = create_engine("sqlite:///sales.db")
@@ -42,9 +43,6 @@ def bfs_join_path(graph, start, end):
                 queue.append(new_path)
     return None
 
-# Temporary in-memory dashboard store
-dashboard_charts = []
-
 @app.route('/add_to_dashboard', methods=['POST'])
 def add_to_dashboard():
     sql_query = request.form.get('sql_query')
@@ -54,12 +52,18 @@ def add_to_dashboard():
 
     print("ADDING TO DASHBOARD:", sql_query, chart_type, label_field, value_field)
 
-    dashboard_charts.append({
+    if 'dashboard_charts' not in session:
+        session['dashboard_charts'] = []
+
+    charts = session['dashboard_charts']
+    charts.append({
         "query": sql_query,
         "graph_type": chart_type,
         "label_field": label_field,
         "value_field": value_field
     })
+
+    session['dashboard_charts'] = charts
 
     return redirect(url_for('index'))
 
@@ -67,6 +71,8 @@ def add_to_dashboard():
 @app.route('/view_dashboard')
 def view_dashboard():
     charts = []
+
+    dashboard_charts = session.get('dashboard_charts', [])
 
     with engine.connect() as conn:
         for chart_def in dashboard_charts:
@@ -88,13 +94,13 @@ def view_dashboard():
                         values.append(0.0)
 
                 charts.append({
-                    'graph_type': chart_def['graph_type'],     # chart type (e.g., bar, pie)
-                    'labels': labels,                          # X-axis or category labels
-                    'values': list(values),                          # Y-axis data (as list)
-                    'label': chart_def['value_field'],         # Chart title label
+                    'graph_type': chart_def['graph_type'],
+                    'labels': labels,
+                    'values': values,  # already a list
+                    'label': chart_def['value_field'],
                     'label_field': chart_def['label_field'],
                     'value_field': chart_def['value_field'],
-                    'sql_query': chart_def['query']            # For display/debugging
+                    'sql_query': chart_def['query']
                 })
 
             except Exception as e:
