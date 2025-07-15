@@ -12,55 +12,50 @@
 
         h1 {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
         .chart-container {
-            width: 90%;
-            margin: 30px auto;
+            max-width: 1000px;
+            margin: 20px auto;
             border: 1px solid #ccc;
-            border-radius: 12px;
-            padding: 25px;
+            border-radius: 10px;
+            padding: 20px;
             background: #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-
-        pre {
-            background: #f7f7f7;
-            padding: 10px;
-            border-left: 4px solid #ccc;
-            overflow-x: auto;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
         }
 
         canvas {
-            margin-top: 20px;
+            margin-top: 15px;
+            max-height: 300px;
         }
 
         table {
             border-collapse: collapse;
             width: 100%;
-            margin-top: 25px;
+            margin-top: 20px;
             background-color: #fafafa;
+            font-size: 14px;
         }
 
         th, td {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border: 1px solid #bbb;
             text-align: left;
         }
 
         th {
-            background-color: #e4e4e4;
+            background-color: #eaeaea;
         }
 
         .back-button {
             text-align: center;
-            margin-top: 40px;
+            margin-top: 30px;
         }
 
         .back-button button {
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 8px 16px;
+            font-size: 15px;
             background-color: #007bff;
             color: white;
             border: none;
@@ -70,6 +65,48 @@
 
         .back-button button:hover {
             background-color: #0056b3;
+        }
+
+        .action-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-buttons form {
+            display: inline;
+        }
+
+        .action-buttons button {
+            padding: 6px 12px;
+            font-size: 13px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .action-buttons .remove-button {
+            background-color: #dc3545;
+        }
+
+        .action-buttons button:hover {
+            opacity: 0.9;
+        }
+
+        h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        h4 {
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        p {
+            font-size: 14px;
         }
     </style>
 </head>
@@ -82,16 +119,12 @@
             <div class="chart-container">
                 <h3>📊 Report {{ loop.index }}: <em>{{ rpt.label_field }} vs {{ rpt.value_field }}</em></h3>
 
-                <!-- SQL Query -->
-                <div><strong>Query:</strong></div>
-                <pre>{{ rpt.query }}</pre>
-
                 <!-- Chart -->
                 <canvas id="chart{{ loop.index }}"></canvas>
                 <script>
                     const ctx{{ loop.index }} = document.getElementById('chart{{ loop.index }}').getContext('2d');
                     new Chart(ctx{{ loop.index }}, {
-                        type: '{{ rpt.graph_type }}',
+                        type: '{{ rpt.graph_type|lower }}',
                         data: {
                             labels: {{ rpt["labels"] | tojson }},
                             datasets: [{
@@ -116,7 +149,7 @@
 
                 <!-- Pivot Table -->
                 {% if rpt.data %}
-                    <h4 style="margin-top: 30px;">📌 Pivot Table View</h4>
+                    <h4>📌 Pivot Table</h4>
                     <table>
                         <thead>
                             <tr>
@@ -138,6 +171,19 @@
                 {% else %}
                     <p>No data available for this report.</p>
                 {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <form method="POST" action="{{ url_for('remove_report') }}">
+                        <input type="hidden" name="report_index" value="{{ loop.index0 }}">
+                        <button type="submit" class="remove-button">🗑 Remove</button>
+                    </form>
+
+                    <form method="POST" action="{{ url_for('save_report') }}">
+                        <input type="hidden" name="report_index" value="{{ loop.index0 }}">
+                        <button type="submit">💾 Save</button>
+                    </form>
+                </div>
             </div>
         {% endfor %}
     {% else %}

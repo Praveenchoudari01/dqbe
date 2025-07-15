@@ -365,6 +365,22 @@ def view_reports():
 
     return render_template('report_preview.html', reports=rendered_reports)
 
+@app.route('/remove_report', methods=['POST'])
+def remove_report():
+    idx = int(request.form.get('report_index'))
+    if 'reports' in session and 0 <= idx < len(session['reports']):
+        session['reports'].pop(idx)
+        session.modified = True
+    return redirect(url_for('view_reports'))
+
+
+@app.route('/save_report', methods=['POST'])
+def save_report():
+    idx = int(request.form.get('report_index'))
+    # TODO: Implement saving logic (to DB or export)
+    print(f"Save triggered for report index {idx}")
+    return redirect(url_for('view_reports'))
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=8989)
