@@ -130,6 +130,7 @@ def update_chart_action():
         session['dashboard_charts'] = charts
 
     return redirect(url_for('view_dashboard'))
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     report_data = []
