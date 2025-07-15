@@ -295,50 +295,59 @@ def add_to_report():
     label_field = request.form.get('label_field')
     value_field = request.form.get('value_field')
 
-    if 'report_charts' not in session:
-        session['report_charts'] = []
+    if not all([sql_query, label_field, value_field]):
+        return "Missing data", 400
 
-    report_charts = session['report_charts']
-    report_charts.append({
+    if 'reports' not in session:
+        session['reports'] = []
+
+    # Add to session
+    reports = session['reports']
+    reports.append({
         'query': sql_query,
         'label_field': label_field,
         'value_field': value_field
     })
-    session['report_charts'] = report_charts
+    session['reports'] = reports
+    session.modified = True
 
-    return redirect(url_for('index'))
+    return redirect(url_for('view_reports'))
 
 @app.route('/view_reports')
 def view_reports():
-    report_charts = session.get('report_charts', [])
-    preview_data = []
+    reports = session.get('reports', [])
+    rendered_reports = []
 
     with engine.connect() as conn:
-        for idx, chart in enumerate(report_charts):
+        for idx, rpt in enumerate(reports):
             try:
-                result = conn.execute(text(chart['query']))
-                data = result.mappings().all()
+                result = conn.execute(text(rpt['query']))
+                rows = result.mappings().all()
 
-                if not data:
+                if not rows:
                     continue
 
-                labels = [str(row[chart['label_field']]) for row in data]
-                values = [[float(row[chart['value_field']])] if isinstance(row[chart['value_field']], (int, float)) else 0 for row in data]
+                columns = list(rows[0].keys())
+                data = [dict(row) for row in rows]
 
-                preview_data.append({
+                labels = [str(row[rpt['label_field']]) for row in rows]
+                values = [float(row[rpt['value_field']]) if isinstance(row[rpt['value_field']], (int, float)) else 0 for row in rows]
+
+                rendered_reports.append({
                     'index': idx + 1,
+                    'query': rpt['query'],
+                    'label_field': rpt['label_field'],
+                    'value_field': rpt['value_field'],
                     'labels': labels,
                     'values': values,
-                    'label_field': chart['label_field'],
-                    'value_field': chart['value_field'],
-                    'query': chart['query']
+                    'columns': columns,
+                    'data': data
                 })
-
             except Exception as e:
-                print(f"Preview error: {e}")
+                print(f"[Report {idx+1}] Failed: {e}")
                 continue
 
-    return render_template('report_preview.html', reports=preview_data)
+    return render_template('report_preview.html', reports=rendered_reports)
 
 
 if __name__ == '__main__':

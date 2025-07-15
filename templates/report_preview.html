@@ -4,26 +4,94 @@
     <title>Report Preview</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial; padding: 20px; }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
         .chart-container {
-            width: 90%; margin: 20px auto; border: 1px solid #ccc;
-            border-radius: 10px; padding: 20px; background: #f9f9f9;
+            width: 90%;
+            margin: 30px auto;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            padding: 25px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        pre {
+            background: #f7f7f7;
+            padding: 10px;
+            border-left: 4px solid #ccc;
+            overflow-x: auto;
+        }
+
+        canvas {
+            margin-top: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 25px;
+            background-color: #fafafa;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #bbb;
+            text-align: left;
+        }
+
+        th {
+            background-color: #e4e4e4;
+        }
+
+        .back-button {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .back-button button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .back-button button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <h1 style="text-align:center;">📋 Report Preview</h1>
+
+    <h1>📋 Report Preview</h1>
 
     {% if reports %}
         {% for rpt in reports %}
             <div class="chart-container">
-                <h3>Report {{ rpt.index }}: {{ rpt.label_field }} vs {{ rpt.value_field }}</h3>
+                <h3>📊 Report {{ loop.index }}: <em>{{ rpt.label_field }} vs {{ rpt.value_field }}</em></h3>
+
+                <!-- SQL Query -->
+                <div><strong>Query:</strong></div>
                 <pre>{{ rpt.query }}</pre>
+
+                <!-- Chart -->
                 <canvas id="chart{{ loop.index }}"></canvas>
                 <script>
                     const ctx{{ loop.index }} = document.getElementById('chart{{ loop.index }}').getContext('2d');
                     new Chart(ctx{{ loop.index }}, {
-                        type: 'bar',
+                        type: '{{ rpt["graph_type"] }}',
                         data: {
                             labels: {{ rpt["labels"] | tojson }},
                             datasets: [{
@@ -34,18 +102,51 @@
                                 borderWidth: 1
                             }]
                         },
-                        options: { responsive: true }
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'top' },
+                                title: {
+                                    display: false
+                                }
+                            }
+                        }
                     });
                 </script>
+
+                <!-- Pivot Table -->
+                {% if rpt.data %}
+                    <h4 style="margin-top: 30px;">📌 Pivot Table View</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in rpt.columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rpt.data %}
+                                <tr>
+                                    {% for col in rpt.columns %}
+                                        <td>{{ row[col] }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No data available for this report.</p>
+                {% endif %}
             </div>
         {% endfor %}
     {% else %}
-        <p style="text-align:center;">No reports added yet.</p>
+        <p style="text-align:center;">No reports have been added yet.</p>
     {% endif %}
 
-    <div style="text-align:center; margin-top:30px;">
-
+    <div class="back-button">
         <a href="{{ url_for('index') }}"><button>🔙 Back</button></a>
     </div>
+
 </body>
 </html>
