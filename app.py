@@ -289,5 +289,57 @@ def index():
         groupable_fields=groupable_fields
     )
 
+@app.route('/add_to_report', methods=['POST'])
+def add_to_report():
+    sql_query = request.form.get('sql_query')
+    label_field = request.form.get('label_field')
+    value_field = request.form.get('value_field')
+
+    if 'report_charts' not in session:
+        session['report_charts'] = []
+
+    report_charts = session['report_charts']
+    report_charts.append({
+        'query': sql_query,
+        'label_field': label_field,
+        'value_field': value_field
+    })
+    session['report_charts'] = report_charts
+
+    return redirect(url_for('index'))
+
+@app.route('/view_reports')
+def view_reports():
+    report_charts = session.get('report_charts', [])
+    preview_data = []
+
+    with engine.connect() as conn:
+        for idx, chart in enumerate(report_charts):
+            try:
+                result = conn.execute(text(chart['query']))
+                data = result.mappings().all()
+
+                if not data:
+                    continue
+
+                labels = [str(row[chart['label_field']]) for row in data]
+                values = [[float(row[chart['value_field']])] if isinstance(row[chart['value_field']], (int, float)) else 0 for row in data]
+
+                preview_data.append({
+                    'index': idx + 1,
+                    'labels': labels,
+                    'values': values,
+                    'label_field': chart['label_field'],
+                    'value_field': chart['value_field'],
+                    'query': chart['query']
+                })
+
+            except Exception as e:
+                print(f"Preview error: {e}")
+                continue
+
+    return render_template('report_preview.html', reports=preview_data)
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=8989)

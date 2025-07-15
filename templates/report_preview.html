@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report Preview</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .chart-container {
+            width: 90%; margin: 20px auto; border: 1px solid #ccc;
+            border-radius: 10px; padding: 20px; background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align:center;">📋 Report Preview</h1>
+
+    {% if reports %}
+        {% for rpt in reports %}
+            <div class="chart-container">
+                <h3>Report {{ rpt.index }}: {{ rpt.label_field }} vs {{ rpt.value_field }}</h3>
+                <pre>{{ rpt.query }}</pre>
+                <canvas id="chart{{ loop.index }}"></canvas>
+                <script>
+                    const ctx{{ loop.index }} = document.getElementById('chart{{ loop.index }}').getContext('2d');
+                    new Chart(ctx{{ loop.index }}, {
+                        type: 'bar',
+                        data: {
+                            labels: {{ rpt["labels"] | tojson }},
+                            datasets: [{
+                                label: '{{ rpt["value_field"] }}',
+                                data: {{ rpt["values"] | tojson }},
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: { responsive: true }
+                    });
+                </script>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p style="text-align:center;">No reports added yet.</p>
+    {% endif %}
+
+    <div style="text-align:center; margin-top:30px;">
+
+        <a href="{{ url_for('index') }}"><button>🔙 Back</button></a>
+    </div>
+</body>
+</html>
