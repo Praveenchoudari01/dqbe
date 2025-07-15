@@ -91,7 +91,7 @@
                 <script>
                     const ctx{{ loop.index }} = document.getElementById('chart{{ loop.index }}').getContext('2d');
                     new Chart(ctx{{ loop.index }}, {
-                        type: '{{ rpt["graph_type"] }}',
+                        type: '{{ rpt.graph_type }}',
                         data: {
                             labels: {{ rpt["labels"] | tojson }},
                             datasets: [{

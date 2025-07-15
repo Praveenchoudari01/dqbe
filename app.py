@@ -294,6 +294,8 @@ def add_to_report():
     sql_query = request.form.get('sql_query')
     label_field = request.form.get('label_field')
     value_field = request.form.get('value_field')
+    graph_type = request.form.get('graph_type')
+    print(graph_type)
 
     if not all([sql_query, label_field, value_field]):
         return "Missing data", 400
@@ -306,7 +308,8 @@ def add_to_report():
     reports.append({
         'query': sql_query,
         'label_field': label_field,
-        'value_field': value_field
+        'value_field': value_field,
+        'graph_type': graph_type
     })
     session['reports'] = reports
     session.modified = True
@@ -333,11 +336,13 @@ def view_reports():
                 labels = [str(row[rpt['label_field']]) for row in rows]
                 values = [float(row[rpt['value_field']]) if isinstance(row[rpt['value_field']], (int, float)) else 0 for row in rows]
 
+                # print(rpt.get('graph_type'))
                 rendered_reports.append({
                     'index': idx + 1,
                     'query': rpt['query'],
                     'label_field': rpt['label_field'],
                     'value_field': rpt['value_field'],
+                    'graph_type': rpt.get('graph_type'),
                     'labels': labels,
                     'values': values,
                     'columns': columns,
