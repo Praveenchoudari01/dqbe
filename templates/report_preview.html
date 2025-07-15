@@ -119,6 +119,31 @@
             <div class="chart-container">
                 <h3>📊 Report {{ loop.index }}: <em>{{ rpt.label_field }} vs {{ rpt.value_field }}</em></h3>
 
+                                <!-- Pivot Table -->
+                {% if rpt.data %}
+                    <h4>📌 Pivot Table</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in rpt.columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rpt.data %}
+                                <tr>
+                                    {% for col in rpt.columns %}
+                                        <td>{{ row[col] }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No data available for this report.</p>
+                {% endif %}
+
                 <!-- Chart -->
                 <canvas id="chart{{ loop.index }}"></canvas>
                 <script>
@@ -147,30 +172,6 @@
                     });
                 </script>
 
-                <!-- Pivot Table -->
-                {% if rpt.data %}
-                    <h4>📌 Pivot Table</h4>
-                    <table>
-                        <thead>
-                            <tr>
-                                {% for col in rpt.columns %}
-                                    <th>{{ col }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in rpt.data %}
-                                <tr>
-                                    {% for col in rpt.columns %}
-                                        <td>{{ row[col] }}</td>
-                                    {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% else %}
-                    <p>No data available for this report.</p>
-                {% endif %}
 
                 <!-- Action Buttons -->
                 <div class="action-buttons">
@@ -191,6 +192,7 @@
     {% endif %}
 
     <div class="back-button">
+        <a href="{{ url_for('export_excel') }}"><button>📤 Export EXCEL</button></a>
         <a href="{{ url_for('index') }}"><button>🔙 Back</button></a>
     </div>
 

@@ -1,6 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, make_response, send_file
 from sqlalchemy import create_engine, MetaData, select, and_, func, asc, desc, text
 from collections import deque
+import pandas as pd
+import io
 
 app = Flask(__name__)
 app.secret_key = 'dqbe_dashboard'
@@ -380,6 +382,69 @@ def save_report():
     # TODO: Implement saving logic (to DB or export)
     print(f"Save triggered for report index {idx}")
     return redirect(url_for('view_reports'))
+
+
+@app.route('/export_excel')
+def export_excel():
+    reports = session.get('reports', [])
+
+    if not reports:
+        return "No reports to export", 400
+
+    output = io.BytesIO()
+
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        for idx, rpt in enumerate(reports):
+            sheet_name = f"Report{idx+1}"[:31]
+
+            # Safely get the data
+            report_data = rpt.get('data')
+            if not report_data:
+                # Skip this report if there's no data
+                continue
+
+            df = pd.DataFrame(report_data)
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+            # Write metadata
+            meta_start_row = len(df) + 2
+            metadata = {
+                'Query': rpt.get('query', 'N/A'),
+                'Label Field': rpt.get('label_field', 'N/A'),
+                'Value Field': rpt.get('value_field', 'N/A'),
+                'Chart Type': rpt.get('graph_type', 'N/A')
+            }
+            meta_df = pd.DataFrame([metadata])
+            meta_df.to_excel(writer, sheet_name=sheet_name, startrow=meta_start_row, index=False)
+
+            # Add chart if at least 2 columns
+            if df.shape[1] >= 2 and len(df) > 0:
+                chart_type = rpt.get('graph_type', 'bar').lower()
+                chart_map = {'bar': 'column', 'line': 'line', 'pie': 'pie'}
+                excel_chart_type = chart_map.get(chart_type, 'column')
+
+                workbook = writer.book
+                worksheet = writer.sheets[sheet_name]
+
+                chart = workbook.add_chart({'type': excel_chart_type})
+
+                chart.add_series({
+                    'categories': [sheet_name, 1, 0, len(df), 0],
+                    'values':     [sheet_name, 1, 1, len(df), 1],
+                    'name':       rpt.get('value_field', 'Values')
+                })
+
+                chart.set_title({'name': f"{rpt.get('label_field')} vs {rpt.get('value_field')}"})
+                worksheet.insert_chart('E2', chart)
+
+    output.seek(0)
+
+    return send_file(
+        output,
+        download_name="Reports.xlsx",
+        as_attachment=True,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
 
 
 if __name__ == '__main__':
