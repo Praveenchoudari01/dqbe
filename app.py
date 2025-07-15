@@ -294,8 +294,20 @@ def add_to_report():
     sql_query = request.form.get('sql_query')
     label_field = request.form.get('label_field')
     value_field = request.form.get('value_field')
-    graph_type = request.form.get('graph_type')
-    print(graph_type)
+    graph_type_raw = request.form.get('graph_type')
+
+    # ✅ Map user-friendly chart names to Chart.js-compatible types
+    type_mapping = {
+        "Bar Chart": "bar",
+        "Line Chart": "line",
+        "Pie Chart": "pie",
+        "Doughnut Chart": "doughnut",
+        "Radar Chart": "radar",
+        "Polar Area Chart": "polarArea"
+    }
+    graph_type = type_mapping.get(graph_type_raw.strip(), "bar")  # Default to 'bar' if invalid
+
+    print("Received graph type:", graph_type_raw, "→ Mapped to:", graph_type)
 
     if not all([sql_query, label_field, value_field]):
         return "Missing data", 400
@@ -303,7 +315,6 @@ def add_to_report():
     if 'reports' not in session:
         session['reports'] = []
 
-    # Add to session
     reports = session['reports']
     reports.append({
         'query': sql_query,
