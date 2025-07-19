@@ -1,3 +1,5 @@
+# this is a DQBE application which will run with predefined joins
+
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session, make_response, send_file
 from sqlalchemy import create_engine, MetaData, select, and_, func, asc, desc, text
 from collections import deque
